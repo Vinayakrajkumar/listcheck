@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,10 +22,12 @@ class ChecklistApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+
       theme: ThemeData(
-        fontFamily: 'Roboto',
         scaffoldBackgroundColor: Colors.white,
+        fontFamily: "Roboto",
       ),
+
       home: const SplashScreen(),
     );
   }
@@ -37,41 +43,50 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState
     extends State<SplashScreen> {
+
   @override
   void initState() {
     super.initState();
 
-    Timer(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-        ),
-      );
-    });
+    Timer(
+      const Duration(seconds: 2),
+      () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                const HomeScreen(),
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment:
               MainAxisAlignment.center,
           children: const [
+
             Icon(
               Icons.task_alt,
               size: 120,
               color: Colors.purple,
             ),
+
             SizedBox(height: 20),
+
             Text(
               "CHECKLIST PRO",
+
               style: TextStyle(
                 fontSize: 34,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+                fontWeight:
+                    FontWeight.bold,
               ),
             ),
           ],
@@ -82,14 +97,13 @@ class _SplashScreenState
 }
 
 class Task {
+
   String title;
-  String tag;
-  Color color;
+  String status;
 
   Task({
     required this.title,
-    required this.tag,
-    required this.color,
+    required this.status,
   });
 }
 
@@ -103,34 +117,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState
     extends State<HomeScreen> {
+
+  late Box taskBox;
+
+  int selectedIndex = 0;
+
   int streak = 0;
 
-  List<Task> tasks = [
-    Task(
-      title:
-          "Dashboard design for admin",
-      tag: "High",
-      color: Colors.pinkAccent,
-    ),
-    Task(
-      title:
-          "Konom web application",
-      tag: "Low",
-      color: Colors.green,
-    ),
-    Task(
-      title:
-          "Research and development",
-      tag: "Medium",
-      color: Colors.orange,
-    ),
-    Task(
-      title:
-          "Event booking application",
-      tag: "Medium",
-      color: Colors.purple,
-    ),
-  ];
+  List<Task> tasks = [];
 
   List<Task> completedTasks = [];
 
@@ -140,27 +134,73 @@ class _HomeScreenState
   void initState() {
     super.initState();
 
+    initializeApp();
+  }
+
+  Future<void> initializeApp() async {
+
+    taskBox =
+        await Hive.openBox("tasks");
+
+    loadTasks();
+
     loadStreak();
   }
 
   Future<void> loadStreak() async {
-    SharedPreferences prefs =
-        await SharedPreferences.getInstance();
 
-    streak = prefs.getInt('streak') ?? 0;
+    SharedPreferences prefs =
+        await SharedPreferences
+            .getInstance();
+
+    streak =
+        prefs.getInt("streak") ?? 0;
 
     setState(() {});
   }
 
   Future<void> saveStreak() async {
-    SharedPreferences prefs =
-        await SharedPreferences.getInstance();
 
-    await prefs.setInt('streak', streak);
+    SharedPreferences prefs =
+        await SharedPreferences
+            .getInstance();
+
+    prefs.setInt("streak", streak);
   }
 
-  void completeTask(Task task) async {
+  void loadTasks() {
+
+    List saved = taskBox.get(
+      "allTasks",
+      defaultValue: [],
+    );
+
+    tasks = saved
+        .map<Task>(
+          (e) => Task(
+            title: e,
+            status: "Pending",
+          ),
+        )
+        .toList();
+
+    setState(() {});
+  }
+
+  void saveTasks() {
+
+    List<String> titles =
+        tasks
+            .map((e) => e.title)
+            .toList();
+
+    taskBox.put("allTasks", titles);
+  }
+
+  void completeTask(Task task) {
+
     setState(() {
+
       completedTasks.add(task);
 
       tasks.remove(task);
@@ -168,97 +208,108 @@ class _HomeScreenState
       streak++;
     });
 
+    saveTasks();
+
     saveStreak();
   }
 
   void laterTask(Task task) {
+
     setState(() {
+
       pendingTasks.add(task);
 
       tasks.remove(task);
     });
+
+    saveTasks();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
+  void addBulkTasks(
+      String rawText) {
 
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
+    List<String> separatedTasks =
+        rawText
+            .split(RegExp(r'[\n,]'));
 
-        title: Row(
-          children: [
-            Container(
-              padding:
-                  const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.purple.shade100,
-                borderRadius:
-                    BorderRadius.circular(
-                        12),
-              ),
-              child: const Icon(
-                Icons.task,
-                color: Colors.purple,
-              ),
+    setState(() {
+
+      for (String t
+          in separatedTasks) {
+
+        if (t
+            .trim()
+            .isNotEmpty) {
+
+          tasks.add(
+            Task(
+              title: t.trim(),
+              status: "Pending",
             ),
+          );
+        }
+      }
+    });
 
-            const SizedBox(width: 12),
+    saveTasks();
+  }
 
-            const Text(
-              "Task List",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight:
-                    FontWeight.bold,
-                fontSize: 28,
-              ),
-            ),
-          ],
-        ),
+  Widget buildHomeScreen() {
 
-        actions: [
-          CircleAvatar(
-            backgroundColor:
-                Colors.white,
-            child: Icon(
-              Icons.arrow_outward,
-              color: Colors.black,
-            ),
-          ),
+    return SafeArea(
 
-          const SizedBox(width: 10),
+      child: Padding(
 
-          CircleAvatar(
-            backgroundColor:
-                Colors.white,
-            child: Icon(
-              Icons.more_vert,
-              color: Colors.black,
-            ),
-          ),
-
-          const SizedBox(width: 15),
-        ],
-      ),
-
-      body: Padding(
         padding:
-            const EdgeInsets.symmetric(
-          horizontal: 20,
-        ),
+            const EdgeInsets.all(20),
 
         child: Column(
+
           children: [
 
-            const SizedBox(height: 10),
-
             Row(
+
+              mainAxisAlignment:
+                  MainAxisAlignment
+                      .spaceBetween,
+
               children: [
 
-                buildTopChip(
+                const Text(
+                  "Task List",
+
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+
+                CircleAvatar(
+                  backgroundColor:
+                      Colors.purple
+                          .shade100,
+
+                  child: Text(
+                    "$streak🔥",
+
+                    style:
+                        const TextStyle(
+                      color:
+                          Colors.black,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            Row(
+
+              children: [
+
+                buildChip(
                   "Complete",
                   completedTasks.length,
                   Colors.green,
@@ -266,17 +317,17 @@ class _HomeScreenState
 
                 const SizedBox(width: 10),
 
-                buildTopChip(
-                  "To Do",
-                  tasks.length,
+                buildChip(
+                  "Pending",
+                  pendingTasks.length,
                   Colors.orange,
                 ),
 
                 const SizedBox(width: 10),
 
-                buildTopChip(
-                  "In Review",
-                  pendingTasks.length,
+                buildChip(
+                  "Tasks",
+                  tasks.length,
                   Colors.purple,
                 ),
               ],
@@ -285,18 +336,22 @@ class _HomeScreenState
             const SizedBox(height: 25),
 
             Expanded(
+
               child: tasks.isEmpty
+
                   ? const Center(
                       child: Text(
-                        "All Tasks Completed",
+                        "No Tasks",
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 28,
                           fontWeight:
                               FontWeight.bold,
                         ),
                       ),
                     )
+
                   : PageView.builder(
+
                       controller:
                           PageController(
                         viewportFraction:
@@ -309,7 +364,7 @@ class _HomeScreenState
                       itemBuilder:
                           (context, index) {
 
-                        final task =
+                        Task task =
                             tasks[index];
 
                         return Dismissible(
@@ -319,6 +374,7 @@ class _HomeScreenState
 
                           background:
                               Container(
+
                             alignment:
                                 Alignment
                                     .centerLeft,
@@ -330,13 +386,14 @@ class _HomeScreenState
 
                             decoration:
                                 BoxDecoration(
+
                               color:
                                   Colors.green,
 
                               borderRadius:
                                   BorderRadius
                                       .circular(
-                                          25),
+                                          30),
                             ),
 
                             child:
@@ -349,7 +406,7 @@ class _HomeScreenState
                                     Colors.white,
 
                                 fontSize:
-                                    22,
+                                    24,
 
                                 fontWeight:
                                     FontWeight
@@ -360,6 +417,7 @@ class _HomeScreenState
 
                           secondaryBackground:
                               Container(
+
                             alignment:
                                 Alignment
                                     .centerRight,
@@ -371,13 +429,14 @@ class _HomeScreenState
 
                             decoration:
                                 BoxDecoration(
+
                               color:
                                   Colors.orange,
 
                               borderRadius:
                                   BorderRadius
                                       .circular(
-                                          25),
+                                          30),
                             ),
 
                             child:
@@ -390,7 +449,7 @@ class _HomeScreenState
                                     Colors.white,
 
                                 fontSize:
-                                    22,
+                                    24,
 
                                 fontWeight:
                                     FontWeight
@@ -428,27 +487,19 @@ class _HomeScreenState
                             padding:
                                 const EdgeInsets
                                         .all(
-                                    20),
+                                    25),
 
                             decoration:
                                 BoxDecoration(
+
                               color:
-                                  task.color
-                                      .withOpacity(
-                                          0.15),
+                                  Colors.purple
+                                      .shade50,
 
                               borderRadius:
                                   BorderRadius
                                       .circular(
-                                          25),
-
-                              border:
-                                  Border.all(
-                                color:
-                                    Colors.black
-                                        .withOpacity(
-                                            0.08),
-                              ),
+                                          30),
                             ),
 
                             child:
@@ -460,31 +511,45 @@ class _HomeScreenState
 
                               children: [
 
-                                Row(
+                                Container(
 
-                                  mainAxisAlignment:
-                                      MainAxisAlignment
-                                          .spaceBetween,
+                                  padding:
+                                      const EdgeInsets
+                                              .symmetric(
+                                    horizontal:
+                                        15,
 
-                                  children: [
+                                    vertical:
+                                        8,
+                                  ),
 
-                                    buildTag(
-                                      task.tag,
-                                      task.color,
-                                    ),
+                                  decoration:
+                                      BoxDecoration(
 
-                                    const Icon(
-                                      Icons
-                                          .more_horiz,
+                                    color:
+                                        Colors
+                                            .purple,
+
+                                    borderRadius:
+                                        BorderRadius
+                                            .circular(
+                                                20),
+                                  ),
+
+                                  child:
+                                      const Text(
+                                    "TASK",
+
+                                    style:
+                                        TextStyle(
                                       color:
-                                          Colors.black54,
+                                          Colors
+                                              .white,
                                     ),
-                                  ],
+                                  ),
                                 ),
 
-                                const SizedBox(
-                                    height:
-                                        25),
+                                const Spacer(),
 
                                 Text(
                                   task.title,
@@ -492,58 +557,15 @@ class _HomeScreenState
                                   style:
                                       const TextStyle(
                                     fontSize:
-                                        28,
+                                        30,
 
                                     fontWeight:
                                         FontWeight
                                             .bold,
-
-                                    color:
-                                        Colors.black,
                                   ),
                                 ),
 
                                 const Spacer(),
-
-                                Row(
-                                  children: [
-
-                                    const Icon(
-                                      Icons
-                                          .calendar_today,
-
-                                      size:
-                                          18,
-                                    ),
-
-                                    const SizedBox(
-                                        width:
-                                            8),
-
-                                    const Text(
-                                      "14 Oct 2024",
-                                    ),
-
-                                    const Spacer(),
-
-                                    const Icon(
-                                      Icons.link,
-                                      size: 18,
-                                    ),
-
-                                    const SizedBox(
-                                        width:
-                                            5),
-
-                                    Text(
-                                      "$streak",
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(
-                                    height:
-                                        20),
 
                                 const Text(
                                   "Swipe Right → Complete",
@@ -556,8 +578,7 @@ class _HomeScreenState
                                 ),
 
                                 const SizedBox(
-                                    height:
-                                        5),
+                                    height: 8),
 
                                 const Text(
                                   "Swipe Left ← Do Later",
@@ -578,12 +599,355 @@ class _HomeScreenState
           ],
         ),
       ),
+    );
+  }
+
+  Widget buildAnalyticsScreen() {
+
+    return SafeArea(
+
+      child: Padding(
+
+        padding:
+            const EdgeInsets.all(20),
+
+        child: Column(
+
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+
+          children: [
+
+            const Text(
+              "Analytics",
+
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            SizedBox(
+
+              height: 300,
+
+              child: BarChart(
+
+                BarChartData(
+
+                  alignment:
+                      BarChartAlignment
+                          .spaceAround,
+
+                  maxY: 20,
+
+                  barGroups: [
+
+                    BarChartGroupData(
+                      x: 1,
+
+                      barRods: [
+
+                        BarChartRodData(
+                          toY:
+                              completedTasks
+                                  .length
+                                  .toDouble(),
+
+                          color:
+                              Colors.green,
+
+                          width: 30,
+                        ),
+                      ],
+                    ),
+
+                    BarChartGroupData(
+                      x: 2,
+
+                      barRods: [
+
+                        BarChartRodData(
+                          toY:
+                              pendingTasks
+                                  .length
+                                  .toDouble(),
+
+                          color:
+                              Colors.orange,
+
+                          width: 30,
+                        ),
+                      ],
+                    ),
+
+                    BarChartGroupData(
+                      x: 3,
+
+                      barRods: [
+
+                        BarChartRodData(
+                          toY:
+                              tasks.length
+                                  .toDouble(),
+
+                          color:
+                              Colors.purple,
+
+                          width: 30,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            buildAnalyticsTile(
+              "Completed Tasks",
+              completedTasks.length,
+              Colors.green,
+            ),
+
+            buildAnalyticsTile(
+              "Pending Tasks",
+              pendingTasks.length,
+              Colors.orange,
+            ),
+
+            buildAnalyticsTile(
+              "Current Tasks",
+              tasks.length,
+              Colors.purple,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildPendingScreen() {
+
+    return SafeArea(
+
+      child: ListView.builder(
+
+        padding:
+            const EdgeInsets.all(20),
+
+        itemCount:
+            pendingTasks.length,
+
+        itemBuilder:
+            (context, index) {
+
+          return buildSimpleTile(
+            pendingTasks[index].title,
+            Colors.orange,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildCompletedScreen() {
+
+    return SafeArea(
+
+      child: ListView.builder(
+
+        padding:
+            const EdgeInsets.all(20),
+
+        itemCount:
+            completedTasks.length,
+
+        itemBuilder:
+            (context, index) {
+
+          return buildSimpleTile(
+            completedTasks[index].title,
+            Colors.green,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildSimpleTile(
+      String text,
+      Color color) {
+
+    return Container(
+
+      margin:
+          const EdgeInsets.only(
+              bottom: 15),
+
+      padding:
+          const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+
+        color:
+            color.withOpacity(0.12),
+
+        borderRadius:
+            BorderRadius.circular(20),
+      ),
+
+      child: Text(
+        text,
+
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight:
+              FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget buildChip(
+      String title,
+      int count,
+      Color color) {
+
+    return Container(
+
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 15,
+        vertical: 10,
+      ),
+
+      decoration: BoxDecoration(
+
+        borderRadius:
+            BorderRadius.circular(20),
+
+        border: Border.all(
+          color: Colors.black12,
+        ),
+      ),
+
+      child: Row(
+
+        children: [
+
+          Text(title),
+
+          const SizedBox(width: 10),
+
+          CircleAvatar(
+            radius: 10,
+
+            backgroundColor:
+                color,
+
+            child: Text(
+              "$count",
+
+              style:
+                  const TextStyle(
+                fontSize: 12,
+                color:
+                    Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildAnalyticsTile(
+      String title,
+      int count,
+      Color color) {
+
+    return Container(
+
+      margin:
+          const EdgeInsets.only(
+              bottom: 20),
+
+      padding:
+          const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+
+        color:
+            color.withOpacity(0.12),
+
+        borderRadius:
+            BorderRadius.circular(20),
+      ),
+
+      child: Row(
+
+        mainAxisAlignment:
+            MainAxisAlignment
+                .spaceBetween,
+
+        children: [
+
+          Text(
+            title,
+
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+
+          Text(
+            "$count",
+
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    List<Widget> screens = [
+
+      buildHomeScreen(),
+
+      buildAnalyticsScreen(),
+
+      buildPendingScreen(),
+
+      buildCompletedScreen(),
+    ];
+
+    return Scaffold(
+
+      body:
+          screens[selectedIndex],
 
       floatingActionButton:
           FloatingActionButton(
-        backgroundColor: Colors.purple,
 
-        child: const Icon(Icons.add),
+        backgroundColor:
+            Colors.purple,
+
+        child:
+            const Icon(Icons.add),
 
         onPressed: () {
 
@@ -592,6 +956,7 @@ class _HomeScreenState
               TextEditingController();
 
           showDialog(
+
             context: context,
 
             builder: (_) {
@@ -602,16 +967,38 @@ class _HomeScreenState
                     RoundedRectangleBorder(
                   borderRadius:
                       BorderRadius.circular(
-                          20),
+                          25),
                 ),
 
                 title:
-                    const Text("Add Task"),
+                    const Text(
+                  "Add Tasks",
+                ),
 
                 content:
-                    TextField(
-                  controller:
-                      controller,
+                    SizedBox(
+
+                  width:
+                      double.maxFinite,
+
+                  child:
+                      TextField(
+
+                    controller:
+                        controller,
+
+                    maxLines: 10,
+
+                    decoration:
+                        const InputDecoration(
+
+                      hintText:
+                          "Paste CSV / Sheet / Manual Tasks\n\nEach line or comma becomes separate card",
+
+                      border:
+                          OutlineInputBorder(),
+                    ),
+                  ),
                 ),
 
                 actions: [
@@ -620,28 +1007,9 @@ class _HomeScreenState
 
                     onPressed: () {
 
-                      if (controller
-                          .text
-                          .isNotEmpty) {
-
-                        setState(() {
-
-                          tasks.add(
-
-                            Task(
-                              title:
-                                  controller
-                                      .text,
-
-                              tag:
-                                  "New",
-
-                              color:
-                                  Colors.blue,
-                            ),
-                          );
-                        });
-                      }
+                      addBulkTasks(
+                        controller.text,
+                      );
 
                       Navigator.pop(
                           context);
@@ -659,157 +1027,90 @@ class _HomeScreenState
       ),
 
       bottomNavigationBar:
-          Container(
+          SafeArea(
 
-        height: 80,
+        child: Container(
+
+          height: 75,
+
+          padding:
+              const EdgeInsets.symmetric(
+            horizontal: 10,
+          ),
+
+          child: Row(
+
+            mainAxisAlignment:
+                MainAxisAlignment
+                    .spaceAround,
+
+            children: [
+
+              navButton(
+                Icons.home,
+                0,
+              ),
+
+              navButton(
+                Icons.bar_chart,
+                1,
+              ),
+
+              navButton(
+                Icons.pending_actions,
+                2,
+              ),
+
+              navButton(
+                Icons.done_all,
+                3,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget navButton(
+      IconData icon,
+      int index) {
+
+    bool isSelected =
+        selectedIndex == index;
+
+    return GestureDetector(
+
+      onTap: () {
+
+        setState(() {
+
+          selectedIndex =
+              index;
+        });
+      },
+
+      child: Container(
 
         padding:
-            const EdgeInsets.symmetric(
-          horizontal: 20,
+            const EdgeInsets.all(15),
+
+        decoration: BoxDecoration(
+
+          color: isSelected
+              ? Colors.purple
+              : Colors.transparent,
+
+          borderRadius:
+              BorderRadius.circular(20),
         ),
 
-        child: Row(
+        child: Icon(
+          icon,
 
-          mainAxisAlignment:
-              MainAxisAlignment
-                  .spaceBetween,
-
-          children: [
-
-            const Icon(
-              Icons.grid_view_rounded,
-              size: 30,
-            ),
-
-            Container(
-
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 25,
-                vertical: 12,
-              ),
-
-              decoration: BoxDecoration(
-                color: Colors.black,
-
-                borderRadius:
-                    BorderRadius.circular(
-                        25),
-              ),
-
-              child: Row(
-                children: const [
-
-                  Icon(
-                    Icons.task_alt,
-                    color: Colors.white,
-                  ),
-
-                  SizedBox(width: 10),
-
-                  Text(
-                    "Task",
-
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Icon(
-              Icons.bar_chart,
-              size: 30,
-            ),
-
-            const CircleAvatar(
-              backgroundImage:
-                  NetworkImage(
-                "https://i.pravatar.cc/150?img=3",
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildTopChip(
-    String title,
-    int count,
-    Color color,
-  ) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 15,
-        vertical: 10,
-      ),
-
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.black12,
-        ),
-
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-
-      child: Row(
-        children: [
-
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.black,
-            ),
-          ),
-
-          const SizedBox(width: 10),
-
-          CircleAvatar(
-            radius: 11,
-            backgroundColor: color,
-
-            child: Text(
-              "$count",
-
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildTag(
-    String text,
-    Color color,
-  ) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 15,
-        vertical: 8,
-      ),
-
-      decoration: BoxDecoration(
-        color: color,
-
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-
-      child: Text(
-        text,
-
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+          color: isSelected
+              ? Colors.white
+              : Colors.black,
         ),
       ),
     );
