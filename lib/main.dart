@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:webview_flutter/webview_flutter.dart';
@@ -10,7 +11,6 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   tz.initializeTimeZones();
@@ -19,52 +19,36 @@ void main() async {
 }
 
 class ChecklistApp extends StatelessWidget {
-
   const ChecklistApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return MaterialApp(
-
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(
-
         useMaterial3: true,
-
         colorSchemeSeed: Colors.purple,
       ),
-
       home: const HomeScreen(),
     );
   }
 }
 
 class Task {
-
   String id;
-
   String category;
-
   String checklist;
-
   String priority;
 
   Task({
-
     required this.id,
-
     required this.category,
-
     required this.checklist,
-
     required this.priority,
   });
 }
 
 class HomeScreen extends StatefulWidget {
-
   const HomeScreen({super.key});
 
   @override
@@ -74,11 +58,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState
     extends State<HomeScreen> {
-
   final FlutterLocalNotificationsPlugin
       notifications =
       FlutterLocalNotificationsPlugin();
 
+  // PASTE YOUR APPS SCRIPT URL HERE
   final String apiUrl =
       "https://script.google.com/macros/s/AKfycbzbrzhrWX6w7V_n8oTmrqkn0tiHxf5ZhwxbD-riZ9IXPUOqHtjQ7yokRMbQxltXalg6/exec";
 
@@ -92,7 +76,6 @@ class _HomeScreenState
 
   @override
   void initState() {
-
     super.initState();
 
     initializeNotifications();
@@ -102,7 +85,6 @@ class _HomeScreenState
 
   Future<void>
       initializeNotifications() async {
-
     const AndroidInitializationSettings
         androidSettings =
         AndroidInitializationSettings(
@@ -121,19 +103,14 @@ class _HomeScreenState
   }
 
   Future<void> fetchTasks() async {
-
     try {
-
       final response =
           await http.get(
         Uri.parse(apiUrl),
       );
 
-      print(response.body);
-
       if (response.statusCode ==
           200) {
-
         final List<dynamic> data =
             jsonDecode(response.body);
 
@@ -141,23 +118,17 @@ class _HomeScreenState
             [];
 
         for (var item in data) {
-
           loadedTasks.add(
-
             Task(
-
               id:
                   item['id']
                       .toString(),
-
               category:
                   item['category']
                       .toString(),
-
               checklist:
                   item['checklist']
                       .toString(),
-
               priority:
                   item['priority']
                       .toString(),
@@ -166,94 +137,63 @@ class _HomeScreenState
         }
 
         setState(() {
-
           tasks = loadedTasks;
         });
       }
-
     } catch (e) {
-
-      print("FETCH ERROR");
-
       print(e);
     }
   }
 
   Future<void> addTask(
-
     String category,
-
     String checklist,
-
     String priority,
-
   ) async {
-
     try {
-
       Task task = Task(
-
         id:
             DateTime.now()
                 .millisecondsSinceEpoch
                 .toString(),
-
         category: category,
-
         checklist: checklist,
-
         priority: priority,
       );
 
       setState(() {
-
         tasks.add(task);
       });
 
       await http.post(
-
         Uri.parse(apiUrl),
-
         headers: {
-
           "Content-Type":
               "application/json",
         },
-
         body: jsonEncode({
-
           "category": category,
-
           "checklist": checklist,
-
           "priority": priority,
         }),
       );
-
     } catch (e) {
-
       print(e);
     }
   }
 
-  bool containsLink(
-    String text,
-  ) {
-
-    return text.contains("http://") ||
-        text.contains("https://") ||
-        text.contains("www.");
+  bool containsLink(String text) {
+    return text.contains(
+              "http://",
+            ) ||
+        text.contains(
+          "https://",
+        );
   }
 
-  String extractLink(
-    String text,
-  ) {
-
+  String extractLink(String text) {
     RegExp exp = RegExp(
-
       r'(https?:\/\/[^\s]+)',
-
-      caseSensitive: false,
     );
 
     Match? match =
@@ -263,68 +203,42 @@ class _HomeScreenState
   }
 
   Widget buildChip(
-
     String title,
-
     int count,
-
     Color color,
-
   ) {
-
     return Container(
-
       padding:
           const EdgeInsets.symmetric(
-
         horizontal: 14,
-
         vertical: 10,
       ),
-
       decoration: BoxDecoration(
-
-        color: color.withOpacity(
-            0.12),
-
+        color:
+            color.withOpacity(0.12),
         borderRadius:
             BorderRadius.circular(18),
       ),
-
       child: Row(
-
         mainAxisSize:
             MainAxisSize.min,
-
         children: [
-
           Text(
-
             title,
-
             style: TextStyle(
               color: color,
             ),
           ),
-
           const SizedBox(width: 8),
-
           CircleAvatar(
-
             radius: 11,
-
             backgroundColor:
                 color,
-
             child: Text(
-
               "$count",
-
               style:
                   const TextStyle(
-
                 fontSize: 11,
-
                 color: Colors.white,
               ),
             ),
@@ -334,357 +248,34 @@ class _HomeScreenState
     );
   }
 
-  Widget buildTaskCard(
-    Task task,
-  ) {
-
-    return Padding(
-
-      padding:
-          const EdgeInsets.only(
-              bottom: 20),
-
-      child: Dismissible(
-
-        key: Key(task.id),
-
-        background: Container(
-
-          alignment:
-              Alignment.centerLeft,
-
-          padding:
-              const EdgeInsets.only(
-                  left: 30),
-
-          decoration: BoxDecoration(
-
-            color: Colors.green,
-
-            borderRadius:
-                BorderRadius.circular(
-                    28),
-          ),
-
-          child: const Text(
-
-            "COMPLETED",
-
-            style: TextStyle(
-
-              color: Colors.white,
-
-              fontSize: 24,
-
-              fontWeight:
-                  FontWeight.bold,
-            ),
-          ),
-        ),
-
-        secondaryBackground:
-            Container(
-
-          alignment:
-              Alignment.centerRight,
-
-          padding:
-              const EdgeInsets.only(
-                  right: 30),
-
-          decoration: BoxDecoration(
-
-            color: Colors.orange,
-
-            borderRadius:
-                BorderRadius.circular(
-                    28),
-          ),
-
-          child: const Text(
-
-            "DO LATER",
-
-            style: TextStyle(
-
-              color: Colors.white,
-
-              fontSize: 24,
-
-              fontWeight:
-                  FontWeight.bold,
-            ),
-          ),
-        ),
-
-        onDismissed:
-            (direction) {
-
-          if (direction ==
-              DismissDirection
-                  .startToEnd) {
-
-            setState(() {
-
-              completedTasks
-                  .add(task);
-
-              tasks.remove(task);
-            });
-
-          } else {
-
-            setState(() {
-
-              pendingTasks
-                  .add(task);
-
-              tasks.remove(task);
-            });
-          }
-        },
-
-        child: Container(
-
-          padding:
-              const EdgeInsets.all(
-                  25),
-
-          decoration: BoxDecoration(
-
-            gradient:
-                LinearGradient(
-
-              colors: [
-
-                Colors.purple
-                    .shade100,
-
-                Colors.white,
-              ],
-            ),
-
-            borderRadius:
-                BorderRadius.circular(
-                    30),
-
-            boxShadow: [
-
-              BoxShadow(
-
-                color: Colors.black
-                    .withOpacity(0.06),
-
-                blurRadius: 12,
-
-                offset:
-                    const Offset(
-                        0,
-                        5),
-              ),
-            ],
-          ),
-
-          child: Column(
-
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
-
-            children: [
-
-              Container(
-
-                padding:
-                    const EdgeInsets
-                        .symmetric(
-
-                  horizontal: 16,
-
-                  vertical: 8,
-                ),
-
-                decoration:
-                    BoxDecoration(
-
-                  color:
-                      Colors.purple,
-
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                              20),
-                ),
-
-                child: Text(
-
-                  task.category,
-
-                  style:
-                      const TextStyle(
-
-                    color:
-                        Colors.white,
-
-                    fontWeight:
-                        FontWeight
-                            .bold,
-                  ),
-                ),
-              ),
-
-              const SizedBox(
-                  height: 25),
-
-              Text(
-
-                task.checklist,
-
-                style:
-                    const TextStyle(
-
-                  fontSize: 22,
-
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(
-                  height: 25),
-
-              Container(
-
-                padding:
-                    const EdgeInsets
-                        .symmetric(
-
-                  horizontal: 14,
-
-                  vertical: 8,
-                ),
-
-                decoration:
-                    BoxDecoration(
-
-                  color: Colors.red,
-
-                  borderRadius:
-                      BorderRadius
-                          .circular(
-                              20),
-                ),
-
-                child: Text(
-
-                  "Priority ${task.priority}",
-
-                  style:
-                      const TextStyle(
-
-                    color:
-                        Colors.white,
-
-                    fontWeight:
-                        FontWeight
-                            .bold,
-                  ),
-                ),
-              ),
-
-              const SizedBox(
-                  height: 20),
-
-              if (
-                containsLink(
-                  task.checklist,
-                )
-              )
-
-                ElevatedButton.icon(
-
-                  onPressed: () {
-
-                    Navigator.push(
-
-                      context,
-
-                      MaterialPageRoute(
-
-                        builder:
-                            (_) => WebViewScreen(
-
-                          url:
-                              extractLink(
-                            task.checklist,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-
-                  icon:
-                      const Icon(Icons.link),
-
-                  label:
-                      const Text(
-                    "Open Link",
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget buildHomeScreen() {
-
     return SafeArea(
-
       child: Padding(
-
         padding:
             const EdgeInsets.all(
                 20),
-
         child: Column(
-
           children: [
-
             Row(
-
               mainAxisAlignment:
                   MainAxisAlignment
                       .spaceBetween,
-
               children: [
-
                 const Text(
-
                   "CHECKLIST PRO",
-
                   style: TextStyle(
-
-                    fontSize: 30,
-
+                    fontSize: 28,
                     fontWeight:
                         FontWeight.bold,
                   ),
                 ),
-
                 ElevatedButton.icon(
-
                   onPressed: () {
-
                     fetchTasks();
                   },
-
-                  icon:
-                      const Icon(
+                  icon: const Icon(
                     Icons.refresh,
                   ),
-
                   label:
                       const Text(
                     "Refresh",
@@ -697,39 +288,24 @@ class _HomeScreenState
                 height: 20),
 
             Wrap(
-
               spacing: 10,
-
               runSpacing: 10,
-
               children: [
-
                 buildChip(
-
                   "Tasks",
-
                   tasks.length,
-
                   Colors.purple,
                 ),
-
                 buildChip(
-
                   "Completed",
-
                   completedTasks
                       .length,
-
                   Colors.green,
                 ),
-
                 buildChip(
-
                   "Later",
-
                   pendingTasks
                       .length,
-
                   Colors.orange,
                 ),
               ],
@@ -739,20 +315,14 @@ class _HomeScreenState
                 height: 25),
 
             Expanded(
-
               child: tasks.isEmpty
 
                   ? const Center(
-
                       child: Text(
-
                         "No Tasks Found",
-
                         style:
                             TextStyle(
-
                           fontSize: 24,
-
                           fontWeight:
                               FontWeight
                                   .bold,
@@ -760,18 +330,265 @@ class _HomeScreenState
                       ),
                     )
 
-                  : ListView.builder(
+                  : SizedBox(
+                      height: 550,
 
-                      itemCount:
-                          tasks.length,
+                      child:
+                          CardSwiper(
+                        cardsCount:
+                            tasks.length,
 
-                      itemBuilder:
-                          (context, index) {
+                        numberOfCardsDisplayed:
+                            1,
 
-                        return buildTaskCard(
-                          tasks[index],
-                        );
-                      },
+                        allowedSwipeDirection:
+                            const AllowedSwipeDirection.only(
+                          left: true,
+                          right: true,
+                        ),
+
+                        onSwipe: (
+                          previousIndex,
+                          currentIndex,
+                          direction,
+                        ) {
+                          Task task =
+                              tasks[
+                                  previousIndex];
+
+                          if (direction ==
+                              CardSwiperDirection
+                                  .right) {
+                            setState(() {
+                              completedTasks
+                                  .add(
+                                      task);
+
+                              tasks.remove(
+                                  task);
+                            });
+                          } else {
+                            setState(() {
+                              pendingTasks
+                                  .add(
+                                      task);
+
+                              tasks.remove(
+                                  task);
+                            });
+                          }
+
+                          return true;
+                        },
+
+                        cardBuilder: (
+                          context,
+                          index,
+                          percentX,
+                          percentY,
+                        ) {
+                          Task task =
+                              tasks[index];
+
+                          return Container(
+                            padding:
+                                const EdgeInsets
+                                    .all(
+                                        25),
+
+                            decoration:
+                                BoxDecoration(
+                              gradient:
+                                  LinearGradient(
+                                colors: [
+                                  Colors
+                                      .purple
+                                      .shade100,
+                                  Colors
+                                      .white,
+                                ],
+                              ),
+
+                              borderRadius:
+                                  BorderRadius.circular(
+                                      35),
+
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors
+                                      .black
+                                      .withOpacity(
+                                          0.08),
+                                  blurRadius:
+                                      15,
+                                  offset:
+                                      const Offset(
+                                          0,
+                                          6),
+                                ),
+                              ],
+                            ),
+
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
+
+                              children: [
+                                Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                    horizontal:
+                                        16,
+                                    vertical:
+                                        8,
+                                  ),
+
+                                  decoration:
+                                      BoxDecoration(
+                                    color: Colors
+                                        .purple,
+
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                            20),
+                                  ),
+
+                                  child: Text(
+                                    task.category,
+
+                                    style:
+                                        const TextStyle(
+                                      color: Colors
+                                          .white,
+
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                    height:
+                                        40),
+
+                                Text(
+                                  task.checklist,
+
+                                  style:
+                                      const TextStyle(
+                                    fontSize:
+                                        28,
+
+                                    fontWeight:
+                                        FontWeight
+                                            .bold,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                    height:
+                                        30),
+
+                                Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                    horizontal:
+                                        16,
+                                    vertical:
+                                        8,
+                                  ),
+
+                                  decoration:
+                                      BoxDecoration(
+                                    color:
+                                        Colors.red,
+
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                            20),
+                                  ),
+
+                                  child: Text(
+                                    "Priority ${task.priority}",
+
+                                    style:
+                                        const TextStyle(
+                                      color: Colors
+                                          .white,
+
+                                      fontWeight:
+                                          FontWeight
+                                              .bold,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                    height:
+                                        20),
+
+                                if (containsLink(
+                                  task.checklist,
+                                ))
+
+                                  ElevatedButton.icon(
+                                    onPressed:
+                                        () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (_) => WebViewScreen(
+                                            url:
+                                                extractLink(
+                                              task.checklist,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+
+                                    icon:
+                                        const Icon(
+                                      Icons.link,
+                                    ),
+
+                                    label:
+                                        const Text(
+                                      "Open Link",
+                                    ),
+                                  ),
+
+                                const Spacer(),
+
+                                const Text(
+                                  "Swipe Right → Complete",
+                                  style:
+                                      TextStyle(
+                                    color: Colors
+                                        .green,
+                                  ),
+                                ),
+
+                                const SizedBox(
+                                    height:
+                                        8),
+
+                                const Text(
+                                  "Swipe Left ← Do Later",
+                                  style:
+                                      TextStyle(
+                                    color: Colors
+                                        .orange,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
             ),
           ],
@@ -781,31 +598,20 @@ class _HomeScreenState
   }
 
   Widget buildAnalyticsScreen() {
-
     return SafeArea(
-
       child: Padding(
-
         padding:
             const EdgeInsets.all(
                 20),
-
         child: Column(
-
           crossAxisAlignment:
               CrossAxisAlignment
                   .start,
-
           children: [
-
             const Text(
-
               "Analytics",
-
               style: TextStyle(
-
                 fontSize: 32,
-
                 fontWeight:
                     FontWeight.bold,
               ),
@@ -815,29 +621,22 @@ class _HomeScreenState
                 height: 40),
 
             SizedBox(
-
               height: 300,
 
               child: BarChart(
-
                 BarChartData(
-
                   maxY: 100,
 
                   barGroups: [
-
                     BarChartGroupData(
                       x: 1,
                       barRods: [
-
                         BarChartRodData(
-                          toY:
-                              tasks.length
-                                  .toDouble(),
-
-                          color:
-                              Colors.purple,
-
+                          toY: tasks
+                              .length
+                              .toDouble(),
+                          color: Colors
+                              .purple,
                           width: 30,
                         ),
                       ],
@@ -846,16 +645,12 @@ class _HomeScreenState
                     BarChartGroupData(
                       x: 2,
                       barRods: [
-
                         BarChartRodData(
-                          toY:
-                              completedTasks
-                                  .length
-                                  .toDouble(),
-
+                          toY: completedTasks
+                              .length
+                              .toDouble(),
                           color:
                               Colors.green,
-
                           width: 30,
                         ),
                       ],
@@ -864,16 +659,12 @@ class _HomeScreenState
                     BarChartGroupData(
                       x: 3,
                       barRods: [
-
                         BarChartRodData(
-                          toY:
-                              pendingTasks
-                                  .length
-                                  .toDouble(),
-
-                          color:
-                              Colors.orange,
-
+                          toY: pendingTasks
+                              .length
+                              .toDouble(),
+                          color: Colors
+                              .orange,
                           width: 30,
                         ),
                       ],
@@ -892,25 +683,19 @@ class _HomeScreenState
     List<Task> list,
     Color color,
   ) {
-
     return SafeArea(
-
       child: ListView.builder(
-
         padding:
             const EdgeInsets.all(
                 20),
-
         itemCount: list.length,
 
         itemBuilder:
             (context, index) {
-
           Task task =
               list[index];
 
           return Container(
-
             margin:
                 const EdgeInsets.only(
                     bottom: 15),
@@ -921,31 +706,26 @@ class _HomeScreenState
 
             decoration:
                 BoxDecoration(
-
               color:
                   color.withOpacity(
                       0.1),
 
               borderRadius:
-                  BorderRadius
-                      .circular(22),
+                  BorderRadius.circular(
+                      22),
             ),
 
             child: Column(
-
               crossAxisAlignment:
                   CrossAxisAlignment
                       .start,
 
               children: [
-
                 Text(
-
                   task.category,
 
                   style:
                       const TextStyle(
-
                     fontWeight:
                         FontWeight.bold,
 
@@ -957,12 +737,10 @@ class _HomeScreenState
                     height: 10),
 
                 Text(
-
                   task.checklist,
 
                   style:
                       const TextStyle(
-
                     fontSize: 20,
                   ),
                 ),
@@ -977,9 +755,7 @@ class _HomeScreenState
   @override
   Widget build(
       BuildContext context) {
-
     List<Widget> screens = [
-
       buildHomeScreen(),
 
       buildAnalyticsScreen(),
@@ -996,13 +772,11 @@ class _HomeScreenState
     ];
 
     return Scaffold(
-
       body:
           screens[selectedIndex],
 
       floatingActionButton:
           FloatingActionButton(
-
         backgroundColor:
             Colors.purple,
 
@@ -1010,7 +784,6 @@ class _HomeScreenState
             const Icon(Icons.add),
 
         onPressed: () {
-
           TextEditingController
               categoryController =
               TextEditingController();
@@ -1024,13 +797,10 @@ class _HomeScreenState
               TextEditingController();
 
           showDialog(
-
             context: context,
 
             builder: (_) {
-
               return AlertDialog(
-
                 title:
                     const Text(
                   "Add Task",
@@ -1038,32 +808,27 @@ class _HomeScreenState
 
                 content:
                     SingleChildScrollView(
-
                   child: Column(
-
                     mainAxisSize:
                         MainAxisSize.min,
 
                     children: [
-
                       TextField(
-
                         controller:
                             categoryController,
 
                         decoration:
                             const InputDecoration(
-
                           hintText:
                               "Category",
                         ),
                       ),
 
                       const SizedBox(
-                          height: 15),
+                          height:
+                              15),
 
                       TextField(
-
                         controller:
                             checklistController,
 
@@ -1071,23 +836,21 @@ class _HomeScreenState
 
                         decoration:
                             const InputDecoration(
-
                           hintText:
                               "Checklist / Link",
                         ),
                       ),
 
                       const SizedBox(
-                          height: 15),
+                          height:
+                              15),
 
                       TextField(
-
                         controller:
                             priorityController,
 
                         decoration:
                             const InputDecoration(
-
                           hintText:
                               "Priority",
                         ),
@@ -1097,13 +860,10 @@ class _HomeScreenState
                 ),
 
                 actions: [
-
                   ElevatedButton(
-
-                    onPressed: () {
-
+                    onPressed:
+                        () {
                       addTask(
-
                         categoryController
                             .text,
 
@@ -1120,7 +880,8 @@ class _HomeScreenState
 
                     child:
                         const Text(
-                            "Add"),
+                      "Add",
+                    ),
                   ),
                 ],
               );
@@ -1131,52 +892,40 @@ class _HomeScreenState
 
       bottomNavigationBar:
           NavigationBar(
-
         selectedIndex:
             selectedIndex,
 
         onDestinationSelected:
             (index) {
-
           setState(() {
-
             selectedIndex =
                 index;
           });
         },
 
         destinations: const [
-
           NavigationDestination(
-
             icon:
                 Icon(Icons.home),
-
             label: "Home",
           ),
 
           NavigationDestination(
-
-            icon:
-                Icon(Icons.bar_chart),
-
+            icon: Icon(
+                Icons.bar_chart),
             label:
                 "Analytics",
           ),
 
           NavigationDestination(
-
-            icon:
-                Icon(Icons.pending),
-
+            icon: Icon(
+                Icons.pending),
             label: "Later",
           ),
 
           NavigationDestination(
-
             icon:
                 Icon(Icons.done),
-
             label:
                 "Completed",
           ),
@@ -1188,28 +937,21 @@ class _HomeScreenState
 
 class WebViewScreen
     extends StatelessWidget {
-
   final String url;
 
   const WebViewScreen({
-
     super.key,
-
     required this.url,
   });
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(),
 
       body: WebViewWidget(
-
         controller:
             WebViewController()
-
               ..loadRequest(
                 Uri.parse(url),
               ),
