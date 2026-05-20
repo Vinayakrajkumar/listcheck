@@ -79,7 +79,6 @@ class _HomeScreenState
       notifications =
       FlutterLocalNotificationsPlugin();
 
-  // PASTE YOUR APPS SCRIPT URL HERE
   final String apiUrl =
       "https://script.google.com/macros/s/AKfycbzbrzhrWX6w7V_n8oTmrqkn0tiHxf5ZhwxbD-riZ9IXPUOqHtjQ7yokRMbQxltXalg6/exec";
 
@@ -335,6 +334,310 @@ class _HomeScreenState
     );
   }
 
+  Widget buildTaskCard(
+    Task task,
+  ) {
+
+    return Padding(
+
+      padding:
+          const EdgeInsets.only(
+              bottom: 20),
+
+      child: Dismissible(
+
+        key: Key(task.id),
+
+        background: Container(
+
+          alignment:
+              Alignment.centerLeft,
+
+          padding:
+              const EdgeInsets.only(
+                  left: 30),
+
+          decoration: BoxDecoration(
+
+            color: Colors.green,
+
+            borderRadius:
+                BorderRadius.circular(
+                    28),
+          ),
+
+          child: const Text(
+
+            "COMPLETED",
+
+            style: TextStyle(
+
+              color: Colors.white,
+
+              fontSize: 24,
+
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+        ),
+
+        secondaryBackground:
+            Container(
+
+          alignment:
+              Alignment.centerRight,
+
+          padding:
+              const EdgeInsets.only(
+                  right: 30),
+
+          decoration: BoxDecoration(
+
+            color: Colors.orange,
+
+            borderRadius:
+                BorderRadius.circular(
+                    28),
+          ),
+
+          child: const Text(
+
+            "DO LATER",
+
+            style: TextStyle(
+
+              color: Colors.white,
+
+              fontSize: 24,
+
+              fontWeight:
+                  FontWeight.bold,
+            ),
+          ),
+        ),
+
+        onDismissed:
+            (direction) {
+
+          if (direction ==
+              DismissDirection
+                  .startToEnd) {
+
+            setState(() {
+
+              completedTasks
+                  .add(task);
+
+              tasks.remove(task);
+            });
+
+          } else {
+
+            setState(() {
+
+              pendingTasks
+                  .add(task);
+
+              tasks.remove(task);
+            });
+          }
+        },
+
+        child: Container(
+
+          padding:
+              const EdgeInsets.all(
+                  25),
+
+          decoration: BoxDecoration(
+
+            gradient:
+                LinearGradient(
+
+              colors: [
+
+                Colors.purple
+                    .shade100,
+
+                Colors.white,
+              ],
+            ),
+
+            borderRadius:
+                BorderRadius.circular(
+                    30),
+
+            boxShadow: [
+
+              BoxShadow(
+
+                color: Colors.black
+                    .withOpacity(0.06),
+
+                blurRadius: 12,
+
+                offset:
+                    const Offset(
+                        0,
+                        5),
+              ),
+            ],
+          ),
+
+          child: Column(
+
+            crossAxisAlignment:
+                CrossAxisAlignment
+                    .start,
+
+            children: [
+
+              Container(
+
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+
+                  horizontal: 16,
+
+                  vertical: 8,
+                ),
+
+                decoration:
+                    BoxDecoration(
+
+                  color:
+                      Colors.purple,
+
+                  borderRadius:
+                      BorderRadius
+                          .circular(
+                              20),
+                ),
+
+                child: Text(
+
+                  task.category,
+
+                  style:
+                      const TextStyle(
+
+                    color:
+                        Colors.white,
+
+                    fontWeight:
+                        FontWeight
+                            .bold,
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                  height: 25),
+
+              Text(
+
+                task.checklist,
+
+                style:
+                    const TextStyle(
+
+                  fontSize: 22,
+
+                  fontWeight:
+                      FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(
+                  height: 25),
+
+              Container(
+
+                padding:
+                    const EdgeInsets
+                        .symmetric(
+
+                  horizontal: 14,
+
+                  vertical: 8,
+                ),
+
+                decoration:
+                    BoxDecoration(
+
+                  color: Colors.red,
+
+                  borderRadius:
+                      BorderRadius
+                          .circular(
+                              20),
+                ),
+
+                child: Text(
+
+                  "Priority ${task.priority}",
+
+                  style:
+                      const TextStyle(
+
+                    color:
+                        Colors.white,
+
+                    fontWeight:
+                        FontWeight
+                            .bold,
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                  height: 20),
+
+              if (
+                containsLink(
+                  task.checklist,
+                )
+              )
+
+                ElevatedButton.icon(
+
+                  onPressed: () {
+
+                    Navigator.push(
+
+                      context,
+
+                      MaterialPageRoute(
+
+                        builder:
+                            (_) => WebViewScreen(
+
+                          url:
+                              extractLink(
+                            task.checklist,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+
+                  icon:
+                      const Icon(Icons.link),
+
+                  label:
+                      const Text(
+                    "Open Link",
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget buildHomeScreen() {
 
     return SafeArea(
@@ -457,13 +760,7 @@ class _HomeScreenState
                       ),
                     )
 
-                  : PageView.builder(
-
-                      controller:
-                          PageController(
-                        viewportFraction:
-                            0.92,
-                      ),
+                  : ListView.builder(
 
                       itemCount:
                           tasks.length,
@@ -471,380 +768,8 @@ class _HomeScreenState
                       itemBuilder:
                           (context, index) {
 
-                        Task task =
-                            tasks[index];
-
-                        return Padding(
-
-                          padding:
-                              const EdgeInsets.only(
-                                  right:
-                                      10),
-
-                          child:
-                              Dismissible(
-
-                            key: Key(
-                              task.id,
-                            ),
-
-                            background:
-                                Container(
-
-                              alignment:
-                                  Alignment
-                                      .centerLeft,
-
-                              padding:
-                                  const EdgeInsets
-                                          .only(
-                                      left:
-                                          30),
-
-                              decoration:
-                                  BoxDecoration(
-
-                                color:
-                                    Colors
-                                        .green,
-
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        28),
-                              ),
-
-                              child:
-                                  const Text(
-
-                                "COMPLETED",
-
-                                style:
-                                    TextStyle(
-
-                                  color:
-                                      Colors.white,
-
-                                  fontSize:
-                                      24,
-
-                                  fontWeight:
-                                      FontWeight.bold,
-                                ),
-                              ),
-                            ),
-
-                            secondaryBackground:
-                                Container(
-
-                              alignment:
-                                  Alignment
-                                      .centerRight,
-
-                              padding:
-                                  const EdgeInsets
-                                          .only(
-                                      right:
-                                          30),
-
-                              decoration:
-                                  BoxDecoration(
-
-                                color:
-                                    Colors
-                                        .orange,
-
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        28),
-                              ),
-
-                              child:
-                                  const Text(
-
-                                "DO LATER",
-
-                                style:
-                                    TextStyle(
-
-                                  color:
-                                      Colors.white,
-
-                                  fontSize:
-                                      24,
-
-                                  fontWeight:
-                                      FontWeight.bold,
-                                ),
-                              ),
-                            ),
-
-                            onDismissed:
-                                (direction) {
-
-                              if (direction ==
-                                  DismissDirection
-                                      .startToEnd) {
-
-                                setState(() {
-
-                                  completedTasks
-                                      .add(
-                                          task);
-
-                                  tasks.remove(
-                                      task);
-                                });
-
-                              } else {
-
-                                setState(() {
-
-                                  pendingTasks
-                                      .add(
-                                          task);
-
-                                  tasks.remove(
-                                      task);
-                                });
-                              }
-                            },
-
-                            child:
-                                Container(
-
-                              height: 520,
-
-                              padding:
-                                  const EdgeInsets
-                                          .all(
-                                      25),
-
-                              decoration:
-                                  BoxDecoration(
-
-                                gradient:
-                                    LinearGradient(
-
-                                  colors: [
-
-                                    Colors
-                                        .purple
-                                        .shade100,
-
-                                    Colors
-                                        .white,
-                                  ],
-                                ),
-
-                                borderRadius:
-                                    BorderRadius.circular(
-                                        30),
-
-                                boxShadow: [
-
-                                  BoxShadow(
-
-                                    color: Colors
-                                        .black
-                                        .withOpacity(
-                                            0.06),
-
-                                    blurRadius:
-                                        12,
-
-                                    offset:
-                                        const Offset(
-                                            0,
-                                            5),
-                                  ),
-                                ],
-                              ),
-
-                              child:
-                                  Column(
-
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
-
-                                children: [
-
-                                  Container(
-
-                                    padding:
-                                        const EdgeInsets.symmetric(
-
-                                      horizontal:
-                                          16,
-
-                                      vertical:
-                                          8,
-                                    ),
-
-                                    decoration:
-                                        BoxDecoration(
-
-                                      color:
-                                          Colors
-                                              .purple,
-
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                              20),
-                                    ),
-
-                                    child:
-                                        Text(
-
-                                      task.category,
-
-                                      style:
-                                          const TextStyle(
-
-                                        color:
-                                            Colors.white,
-
-                                        fontWeight:
-                                            FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-
-                                  const Spacer(),
-
-                                  Text(
-
-                                    task.checklist,
-
-                                    style:
-                                        const TextStyle(
-
-                                      fontSize:
-                                          28,
-
-                                      fontWeight:
-                                          FontWeight.bold,
-                                    ),
-                                  ),
-
-                                  const SizedBox(
-                                      height:
-                                          22),
-
-                                  Container(
-
-                                    padding:
-                                        const EdgeInsets.symmetric(
-
-                                      horizontal:
-                                          14,
-
-                                      vertical:
-                                          8,
-                                    ),
-
-                                    decoration:
-                                        BoxDecoration(
-
-                                      color:
-                                          Colors.red,
-
-                                      borderRadius:
-                                          BorderRadius.circular(
-                                              20),
-                                    ),
-
-                                    child:
-                                        Text(
-
-                                      "Priority ${task.priority}",
-
-                                      style:
-                                          const TextStyle(
-
-                                        color:
-                                            Colors.white,
-
-                                        fontWeight:
-                                            FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-
-                                  const SizedBox(
-                                      height:
-                                          20),
-
-                                  if (
-                                    containsLink(
-                                      task
-                                          .checklist,
-                                    )
-                                  )
-
-                                    ElevatedButton.icon(
-
-                                      onPressed:
-                                          () {
-
-                                        Navigator.push(
-
-                                          context,
-
-                                          MaterialPageRoute(
-
-                                            builder:
-                                                (_) => WebViewScreen(
-
-                                              url:
-                                                  extractLink(
-                                                task.checklist,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-
-                                      icon:
-                                          const Icon(Icons.link),
-
-                                      label:
-                                          const Text(
-                                        "Open Link",
-                                      ),
-                                    ),
-
-                                  const Spacer(),
-
-                                  const Text(
-
-                                    "Swipe Right → Complete",
-
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          Colors.green,
-                                    ),
-                                  ),
-
-                                  const SizedBox(
-                                      height:
-                                          8),
-
-                                  const Text(
-
-                                    "Swipe Left ← Do Later",
-
-                                    style:
-                                        TextStyle(
-                                      color:
-                                          Colors.orange,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        return buildTaskCard(
+                          tasks[index],
                         );
                       },
                     ),
