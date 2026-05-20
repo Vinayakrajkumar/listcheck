@@ -1,11 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+
 void main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();
@@ -14,15 +22,17 @@ void main() async {
 }
 
 class ChecklistApp extends StatelessWidget {
+
   const ChecklistApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
+
       debugShowCheckedModeBanner: false,
 
       theme: ThemeData(
-        scaffoldBackgroundColor: Colors.white,
         fontFamily: "Roboto",
       ),
 
@@ -32,6 +42,7 @@ class ChecklistApp extends StatelessWidget {
 }
 
 class SplashScreen extends StatefulWidget {
+
   const SplashScreen({super.key});
 
   @override
@@ -44,13 +55,17 @@ class _SplashScreenState
 
   @override
   void initState() {
+
     super.initState();
 
     Timer(
       const Duration(seconds: 2),
       () {
+
         Navigator.pushReplacement(
+
           context,
+
           MaterialPageRoute(
             builder: (_) =>
                 const HomeScreen(),
@@ -64,10 +79,16 @@ class _SplashScreenState
   Widget build(BuildContext context) {
 
     return Scaffold(
+
+      backgroundColor: Colors.white,
+
       body: Center(
+
         child: Column(
+
           mainAxisAlignment:
               MainAxisAlignment.center,
+
           children: const [
 
             Icon(
@@ -79,10 +100,13 @@ class _SplashScreenState
             SizedBox(height: 20),
 
             Text(
+
               "CHECKLIST PRO",
 
               style: TextStyle(
+
                 fontSize: 34,
+
                 fontWeight:
                     FontWeight.bold,
               ),
@@ -97,15 +121,23 @@ class _SplashScreenState
 class Task {
 
   String title;
+
   String status;
 
+  DateTime? deadline;
+
   Task({
+
     required this.title,
+
     required this.status,
+
+    this.deadline,
   });
 }
 
 class HomeScreen extends StatefulWidget {
+
   const HomeScreen({super.key});
 
   @override
@@ -115,6 +147,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState
     extends State<HomeScreen> {
+
+  final FlutterLocalNotificationsPlugin
+  notifications =
+      FlutterLocalNotificationsPlugin();
 
   late Box taskBox;
 
@@ -130,6 +166,7 @@ class _HomeScreenState
 
   @override
   void initState() {
+
     super.initState();
 
     initializeApp();
@@ -140,9 +177,77 @@ class _HomeScreenState
     taskBox =
         await Hive.openBox("tasks");
 
+    await initializeNotifications();
+
     loadTasks();
 
     loadStreak();
+  }
+
+  Future<void>
+  initializeNotifications() async {
+
+    tz.initializeTimeZones();
+
+    const AndroidInitializationSettings
+    androidSettings =
+        AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+
+    const InitializationSettings
+    settings = InitializationSettings(
+      android: androidSettings,
+    );
+
+    await notifications.initialize(
+        settings);
+  }
+
+  Future<void> scheduleNotification(
+
+    String title,
+
+    DateTime deadline,
+
+  ) async {
+
+    await notifications.zonedSchedule(
+
+      deadline.hashCode,
+
+      "Task Deadline",
+
+      title,
+
+      tz.TZDateTime.from(
+        deadline,
+        tz.local,
+      ),
+
+      const NotificationDetails(
+
+        android:
+            AndroidNotificationDetails(
+
+          'deadline_channel',
+
+          'Deadlines',
+
+          importance: Importance.max,
+
+          priority: Priority.high,
+        ),
+      ),
+
+      androidScheduleMode:
+          AndroidScheduleMode
+              .exactAllowWhileIdle,
+
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation
+              .absoluteTime,
+    );
   }
 
   Future<void> loadStreak() async {
@@ -223,35 +328,6 @@ class _HomeScreenState
     saveTasks();
   }
 
-  void addBulkTasks(
-      String rawText) {
-
-    List<String> separatedTasks =
-        rawText
-            .split(RegExp(r'[\n,]'));
-
-    setState(() {
-
-      for (String t
-          in separatedTasks) {
-
-        if (t
-            .trim()
-            .isNotEmpty) {
-
-          tasks.add(
-            Task(
-              title: t.trim(),
-              status: "Pending",
-            ),
-          );
-        }
-      }
-    });
-
-    saveTasks();
-  }
-
   Widget buildHomeScreen() {
 
     return SafeArea(
@@ -274,28 +350,26 @@ class _HomeScreenState
               children: [
 
                 const Text(
+
                   "Task List",
 
                   style: TextStyle(
+
                     fontSize: 32,
+
                     fontWeight:
                         FontWeight.bold,
                   ),
                 ),
 
                 CircleAvatar(
+
                   backgroundColor:
                       Colors.purple
                           .shade100,
 
                   child: Text(
                     "$streak🔥",
-
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.black,
-                    ),
                   ),
                 ),
               ],
@@ -338,10 +412,15 @@ class _HomeScreenState
               child: tasks.isEmpty
 
                   ? const Center(
+
                       child: Text(
+
                         "No Tasks",
+
                         style: TextStyle(
+
                           fontSize: 28,
+
                           fontWeight:
                               FontWeight.bold,
                         ),
@@ -396,10 +475,12 @@ class _HomeScreenState
 
                             child:
                                 const Text(
+
                               "COMPLETED",
 
                               style:
                                   TextStyle(
+
                                 color:
                                     Colors.white,
 
@@ -439,10 +520,12 @@ class _HomeScreenState
 
                             child:
                                 const Text(
+
                               "DO LATER",
 
                               style:
                                   TextStyle(
+
                                 color:
                                     Colors.white,
 
@@ -468,8 +551,7 @@ class _HomeScreenState
 
                             } else {
 
-                              laterTask(
-                                  task);
+                              laterTask(task);
                             }
                           },
 
@@ -536,6 +618,7 @@ class _HomeScreenState
 
                                   child:
                                       const Text(
+
                                     "TASK",
 
                                     style:
@@ -550,10 +633,12 @@ class _HomeScreenState
                                 const Spacer(),
 
                                 Text(
+
                                   task.title,
 
                                   style:
                                       const TextStyle(
+
                                     fontSize:
                                         30,
 
@@ -563,13 +648,28 @@ class _HomeScreenState
                                   ),
                                 ),
 
+                                const SizedBox(
+                                    height: 20),
+
+                                if (task.deadline !=
+                                    null)
+
+                                  Text(
+
+                                    "Deadline : ${task.deadline.toString()}",
+
+                                    style:
+                                        const TextStyle(
+                                      color:
+                                          Colors.red,
+                                    ),
+                                  ),
+
                                 const Spacer(),
 
                                 const Text(
                                   "Swipe Right → Complete",
-
-                                  style:
-                                      TextStyle(
+                                  style: TextStyle(
                                     color:
                                         Colors.green,
                                   ),
@@ -580,9 +680,7 @@ class _HomeScreenState
 
                                 const Text(
                                   "Swipe Left ← Do Later",
-
-                                  style:
-                                      TextStyle(
+                                  style: TextStyle(
                                     color:
                                         Colors.orange,
                                   ),
@@ -617,10 +715,13 @@ class _HomeScreenState
           children: [
 
             const Text(
+
               "Analytics",
 
               style: TextStyle(
+
                 fontSize: 32,
+
                 fontWeight:
                     FontWeight.bold,
               ),
@@ -636,17 +737,12 @@ class _HomeScreenState
 
                 BarChartData(
 
-                  alignment:
-                      BarChartAlignment
-                          .spaceAround,
-
-                  maxY: 20,
+                  maxY: 100,
 
                   barGroups: [
 
                     BarChartGroupData(
                       x: 1,
-
                       barRods: [
 
                         BarChartRodData(
@@ -665,7 +761,6 @@ class _HomeScreenState
 
                     BarChartGroupData(
                       x: 2,
-
                       barRods: [
 
                         BarChartRodData(
@@ -684,7 +779,6 @@ class _HomeScreenState
 
                     BarChartGroupData(
                       x: 3,
-
                       barRods: [
 
                         BarChartRodData(
@@ -703,33 +797,16 @@ class _HomeScreenState
                 ),
               ),
             ),
-
-            const SizedBox(height: 30),
-
-            buildAnalyticsTile(
-              "Completed Tasks",
-              completedTasks.length,
-              Colors.green,
-            ),
-
-            buildAnalyticsTile(
-              "Pending Tasks",
-              pendingTasks.length,
-              Colors.orange,
-            ),
-
-            buildAnalyticsTile(
-              "Current Tasks",
-              tasks.length,
-              Colors.purple,
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget buildPendingScreen() {
+  Widget buildSimplePage(
+    List<Task> list,
+    Color color,
+  ) {
 
     return SafeArea(
 
@@ -738,89 +815,60 @@ class _HomeScreenState
         padding:
             const EdgeInsets.all(20),
 
-        itemCount:
-            pendingTasks.length,
+        itemCount: list.length,
 
         itemBuilder:
             (context, index) {
 
-          return buildSimpleTile(
-            pendingTasks[index].title,
-            Colors.orange,
+          return Container(
+
+            margin:
+                const EdgeInsets.only(
+                    bottom: 15),
+
+            padding:
+                const EdgeInsets.all(
+                    20),
+
+            decoration: BoxDecoration(
+
+              color:
+                  color.withOpacity(0.1),
+
+              borderRadius:
+                  BorderRadius.circular(
+                      20),
+            ),
+
+            child: Text(
+
+              list[index].title,
+
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
           );
         },
-      ),
-    );
-  }
-
-  Widget buildCompletedScreen() {
-
-    return SafeArea(
-
-      child: ListView.builder(
-
-        padding:
-            const EdgeInsets.all(20),
-
-        itemCount:
-            completedTasks.length,
-
-        itemBuilder:
-            (context, index) {
-
-          return buildSimpleTile(
-            completedTasks[index].title,
-            Colors.green,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget buildSimpleTile(
-      String text,
-      Color color) {
-
-    return Container(
-
-      margin:
-          const EdgeInsets.only(
-              bottom: 15),
-
-      padding:
-          const EdgeInsets.all(20),
-
-      decoration: BoxDecoration(
-
-        color:
-            color.withOpacity(0.12),
-
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-
-      child: Text(
-        text,
-
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight:
-              FontWeight.bold,
-        ),
       ),
     );
   }
 
   Widget buildChip(
-      String title,
-      int count,
-      Color color) {
+    String title,
+    int count,
+    Color color,
+  ) {
 
     return Container(
 
       padding:
           const EdgeInsets.symmetric(
+
         horizontal: 15,
+
         vertical: 10,
       ),
 
@@ -843,75 +891,20 @@ class _HomeScreenState
           const SizedBox(width: 10),
 
           CircleAvatar(
+
             radius: 10,
 
             backgroundColor:
                 color,
 
             child: Text(
+
               "$count",
 
-              style:
-                  const TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color:
-                    Colors.white,
+                color: Colors.white,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildAnalyticsTile(
-      String title,
-      int count,
-      Color color) {
-
-    return Container(
-
-      margin:
-          const EdgeInsets.only(
-              bottom: 20),
-
-      padding:
-          const EdgeInsets.all(20),
-
-      decoration: BoxDecoration(
-
-        color:
-            color.withOpacity(0.12),
-
-        borderRadius:
-            BorderRadius.circular(20),
-      ),
-
-      child: Row(
-
-        mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
-
-        children: [
-
-          Text(
-            title,
-
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight:
-                  FontWeight.bold,
-            ),
-          ),
-
-          Text(
-            "$count",
-
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight:
-                  FontWeight.bold,
             ),
           ),
         ],
@@ -928,15 +921,20 @@ class _HomeScreenState
 
       buildAnalyticsScreen(),
 
-      buildPendingScreen(),
+      buildSimplePage(
+        pendingTasks,
+        Colors.orange,
+      ),
 
-      buildCompletedScreen(),
+      buildSimplePage(
+        completedTasks,
+        Colors.green,
+      ),
     ];
 
     return Scaffold(
 
-      body:
-          screens[selectedIndex],
+      body: screens[selectedIndex],
 
       floatingActionButton:
           FloatingActionButton(
@@ -947,11 +945,13 @@ class _HomeScreenState
         child:
             const Icon(Icons.add),
 
-        onPressed: () {
+        onPressed: () async {
 
           TextEditingController
               controller =
               TextEditingController();
+
+          DateTime? selectedDeadline;
 
           showDialog(
 
@@ -959,65 +959,264 @@ class _HomeScreenState
 
             builder: (_) {
 
-              return AlertDialog(
+              return StatefulBuilder(
 
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                          25),
-                ),
+                builder:
+                    (context,
+                        setDialogState) {
 
-                title:
-                    const Text(
-                  "Add Tasks",
-                ),
+                  return AlertDialog(
 
-                content:
-                    SizedBox(
-
-                  width:
-                      double.maxFinite,
-
-                  child:
-                      TextField(
-
-                    controller:
-                        controller,
-
-                    maxLines: 10,
-
-                    decoration:
-                        const InputDecoration(
-
-                      hintText:
-                          "Paste CSV / Sheet / Manual Tasks\n\nEach line or comma becomes separate card",
-
-                      border:
-                          OutlineInputBorder(),
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius
+                              .circular(
+                                  25),
                     ),
-                  ),
-                ),
 
-                actions: [
-
-                  ElevatedButton(
-
-                    onPressed: () {
-
-                      addBulkTasks(
-                        controller.text,
-                      );
-
-                      Navigator.pop(
-                          context);
-                    },
-
-                    child:
+                    title:
                         const Text(
-                            "Add"),
-                  ),
-                ],
+                      "Add Tasks",
+                    ),
+
+                    content:
+                        SingleChildScrollView(
+
+                      child: Column(
+
+                        mainAxisSize:
+                            MainAxisSize.min,
+
+                        children: [
+
+                          TextField(
+
+                            controller:
+                                controller,
+
+                            maxLines: 10,
+
+                            decoration:
+                                const InputDecoration(
+
+                              hintText:
+                                  "Paste CSV / Manual Tasks",
+
+                              border:
+                                  OutlineInputBorder(),
+                            ),
+                          ),
+
+                          const SizedBox(
+                              height: 20),
+
+                          ElevatedButton.icon(
+
+                            onPressed:
+                                () async {
+
+                              DateTime?
+                                  pickedDate =
+                                  await showDatePicker(
+
+                                context:
+                                    context,
+
+                                firstDate:
+                                    DateTime.now(),
+
+                                lastDate:
+                                    DateTime(
+                                        2100),
+
+                                initialDate:
+                                    DateTime.now(),
+                              );
+
+                              if (pickedDate !=
+                                  null) {
+
+                                TimeOfDay?
+                                    pickedTime =
+                                    await showTimePicker(
+
+                                  context:
+                                      context,
+
+                                  initialTime:
+                                      TimeOfDay.now(),
+                                );
+
+                                if (pickedTime !=
+                                    null) {
+
+                                  selectedDeadline =
+                                      DateTime(
+
+                                    pickedDate
+                                        .year,
+
+                                    pickedDate
+                                        .month,
+
+                                    pickedDate
+                                        .day,
+
+                                    pickedTime
+                                        .hour,
+
+                                    pickedTime
+                                        .minute,
+                                  );
+
+                                  setDialogState(
+                                      () {});
+                                }
+                              }
+                            },
+
+                            icon: const Icon(
+                                Icons.alarm),
+
+                            label: Text(
+
+                              selectedDeadline ==
+                                      null
+
+                                  ? "Set Deadline"
+
+                                  : selectedDeadline
+                                      .toString(),
+                            ),
+                          ),
+
+                          const SizedBox(
+                              height: 15),
+
+                          ElevatedButton.icon(
+
+                            onPressed:
+                                () async {
+
+                              FilePickerResult?
+                                  result =
+                                  await FilePicker
+                                      .platform
+                                      .pickFiles();
+
+                              if (result !=
+                                  null) {
+
+                                PlatformFile file =
+                                    result
+                                        .files
+                                        .first;
+
+                                String content =
+                                    utf8.decode(
+                                  file.bytes!,
+                                );
+
+                                List<
+                                        List<
+                                            dynamic>>
+                                    rows =
+                                    const CsvToListConverter()
+                                        .convert(
+                                            content);
+
+                                String allTasks =
+                                    "";
+
+                                for (var row
+                                    in rows) {
+
+                                  allTasks +=
+                                      "${row.join(" ")}\n";
+                                }
+
+                                controller.text =
+                                    allTasks;
+                              }
+                            },
+
+                            icon: const Icon(
+                                Icons.upload_file),
+
+                            label:
+                                const Text(
+                              "Import CSV",
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    actions: [
+
+                      ElevatedButton(
+
+                        onPressed: () {
+
+                          List<String> lines =
+                              controller
+                                  .text
+                                  .split(
+                                      RegExp(
+                                          r'[\n,]'));
+
+                          setState(() {
+
+                            for (String line
+                                in lines) {
+
+                              if (line
+                                  .trim()
+                                  .isNotEmpty) {
+
+                                Task task =
+                                    Task(
+
+                                  title: line
+                                      .trim(),
+
+                                  status:
+                                      "Pending",
+
+                                  deadline:
+                                      selectedDeadline,
+                                );
+
+                                tasks.add(task);
+
+                                if (selectedDeadline !=
+                                    null) {
+
+                                  scheduleNotification(
+
+                                    line.trim(),
+
+                                    selectedDeadline!,
+                                  );
+                                }
+                              }
+                            }
+                          });
+
+                          saveTasks();
+
+                          Navigator.pop(
+                              context);
+                        },
+
+                        child:
+                            const Text(
+                                "Add"),
+                      ),
+                    ],
+                  );
+                },
               );
             },
           );
@@ -1071,8 +1270,9 @@ class _HomeScreenState
   }
 
   Widget navButton(
-      IconData icon,
-      int index) {
+    IconData icon,
+    int index,
+  ) {
 
     bool isSelected =
         selectedIndex == index;
@@ -1083,8 +1283,7 @@ class _HomeScreenState
 
         setState(() {
 
-          selectedIndex =
-              index;
+          selectedIndex = index;
         });
       },
 
@@ -1100,10 +1299,12 @@ class _HomeScreenState
               : Colors.transparent,
 
           borderRadius:
-              BorderRadius.circular(20),
+              BorderRadius.circular(
+                  20),
         ),
 
         child: Icon(
+
           icon,
 
           color: isSelected
